@@ -10,6 +10,7 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
+
 file = tempfile.mktemp()
 requests_cache.install_cache('anime_downloader', expires_after=300)
 
@@ -50,7 +51,7 @@ def get_session(custom_session=None):
     return _session
 
 
-class _DownloaderSession:
+class DownloaderSession:
     external_downloaders = {
         "aria2": {
             "executable": "aria2c",
@@ -74,7 +75,7 @@ class _DownloaderSession:
         # TODO: Add ability to add downloaders using config
         pass
 
-    def __getitem__(self, key):
+    def get(self, key, **options):
         # HACK: Because of circular dependency
         from anime_downloader import downloader
         # HACK: This has to obtained like this because this variable is
@@ -93,5 +94,3 @@ class _DownloaderSession:
             self._cache[key] = downloader.get_downloader('ext')(
                 options=self.external_downloaders[key])
         return self._cache[key]
-
-DownloaderSession = _DownloaderSession()
