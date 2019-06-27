@@ -167,6 +167,7 @@ def format_filename(filename, episode):
     rep_dict = {
         'anime_title': slugify(episode._parent.title),
         'ep_no': str(episode.ep_no).zfill(zerosTofill),
+        'eq_qual': episode.quality,
     }
 
     filename = filename.format(**rep_dict)
