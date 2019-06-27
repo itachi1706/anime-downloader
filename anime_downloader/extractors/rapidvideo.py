@@ -90,8 +90,8 @@ def further_source_processing(source_map, ideal_resolution):
             res -= res_divide[res]
             logging.debug("[RapidVideo] Attempting to download video at {}p".format(res))
             if res in source_map:
-                logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
-                logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
+                logging.info("[RapidVideo] Found Video at {}p resolution".format(res))
+                logging.debug("[RapidVideo] Returning URL {}".format(source_map[res]))
                 return source_map[res]
             logging.debug("[RapidVideo] Cannot find in {}p resolution".format(res))
         logging.info("[RapidVideo] Unable to find resolutions. Falling back to legacy implementation")
