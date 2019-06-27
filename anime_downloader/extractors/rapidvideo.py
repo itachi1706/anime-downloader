@@ -64,33 +64,37 @@ def get_source(soup, quality):
         # Try and get based on quality as well
         source_map = {}
         for s in soup.find_all('source'):
-            source_map[s.get('data-res')] = s.get('src')
-        return further_source_processing(source_map, quality)
-        # return soup.find_all('source')[0].get('src')
+            source_map[int(s.get('data-res'))] = s.get('src')
+        if source_map:
+            return further_source_processing(source_map, quality)
+        else:
+            return soup.find_all('source')[0].get('src')
     except IndexError:
         return str(src_re.findall(str(soup))[0])
 
 
 def further_source_processing(source_map, ideal_resolution):
-    ideal_resolution = ideal_resolution.replace("p", "").replace("P", "")
-    if ideal_resolution in source_map:
-        logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
-        logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
-        return source_map[ideal_resolution]
-    res_divide = {1080: 360, 720: 240, 480: 120}
-    logging.info("[RapidVideo] Ideal Resolution ({}p) not found. Attempting downgrade".format(ideal_resolution))
     try:
+        ideal_resolution = int(ideal_resolution.replace("p", "").replace("P", ""))
+        logging.debug("[RapidVideo] Mapped Sources: {}".format(source_map))
+        if ideal_resolution in source_map:
+            logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
+            logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
+            return source_map[ideal_resolution]
+        res_divide = {1080: 360, 720: 240, 480: 120}
+        logging.info("[RapidVideo] Ideal Resolution ({}p) not found. Attempting downgrade".format(ideal_resolution))
+
         # Try and downgrade
-        res = int(ideal_resolution)
+        res = ideal_resolution
         while res in res_divide:
-            if res in res_divide:
-                res -= res_divide[res]
-                logging.info("[RapidVideo] Attempting to download {}p".format(res))
-                if res in source_map:
-                    logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
-                    logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
-                    return source_map[res]
+            res -= res_divide[res]
+            logging.debug("[RapidVideo] Attempting to download video at {}p".format(res))
+            if res in source_map:
+                logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
+                logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
+                return source_map[res]
+            logging.debug("[RapidVideo] Cannot find in {}p resolution".format(res))
         logging.info("[RapidVideo] Unable to find resolutions. Falling back to legacy implementation")
-        return source_map[0]
+        return list(source_map.items())[0]  # Correct Implementation
     except ValueError:
-        return source_map[0]  # Former implementation
+        return list(source_map.items())[0]  # Former implementation
