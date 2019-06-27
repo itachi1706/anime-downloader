@@ -21,7 +21,7 @@ class RapidVideo(BaseExtractor):
             # even if there is a click button
             # This will make sure a source link is present
             soup = BeautifulSoup(r.text, 'html.parser')
-            get_source(soup)
+            get_source(soup, self.quality)
         except:
             r = session.post(url, {
                 'confirm.x': 12,
@@ -36,7 +36,7 @@ class RapidVideo(BaseExtractor):
         image_re = re.compile(r'"og:image" content="(.*)"')
 
         try:
-            stream_url = get_source(soup)
+            stream_url = get_source(soup, self.quality)
         except IndexError:
             stream_url = None
 
@@ -58,9 +58,39 @@ class RapidVideo(BaseExtractor):
         }
 
 
-def get_source(soup):
+def get_source(soup, quality):
     src_re = re.compile(r'src: "(.*)"')
     try:
-        return soup.find_all('source')[0].get('src')
+        # Try and get based on quality as well
+        source_map = {}
+        for s in soup.find_all('source'):
+            source_map[s.get('data-res')] = s.get('src')
+        return further_source_processing(source_map, quality)
+        # return soup.find_all('source')[0].get('src')
     except IndexError:
         return str(src_re.findall(str(soup))[0])
+
+
+def further_source_processing(source_map, ideal_resolution):
+    ideal_resolution = ideal_resolution.replace("p", "").replace("P", "")
+    if ideal_resolution in source_map:
+        logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
+        logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
+        return source_map[ideal_resolution]
+    res_divide = {1080: 360, 720: 240, 480: 120}
+    logging.info("[RapidVideo] Ideal Resolution ({}p) not found. Attempting downgrade".format(ideal_resolution))
+    try:
+        # Try and downgrade
+        res = int(ideal_resolution)
+        while res in res_divide:
+            if res in res_divide:
+                res -= res_divide[res]
+                logging.info("[RapidVideo] Attempting to download {}p".format(res))
+                if res in source_map:
+                    logging.info("[RapidVideo] Found Video at {}p resolution".format(ideal_resolution))
+                    logging.debug("[RapidVideo] Returning URL {}".format(source_map[ideal_resolution]))
+                    return source_map[res]
+        logging.info("[RapidVideo] Unable to find resolutions. Falling back to legacy implementation")
+        return source_map[0]
+    except ValueError:
+        return source_map[0]  # Former implementation
